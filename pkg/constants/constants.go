@@ -115,6 +115,35 @@ var (
 	PredictorProtocolAnnotationKey                   = InferenceServiceInternalAnnotationsPrefix + "/predictor-protocol"
 )
 
+var InferenceServiceAnnotations = []string{
+	InferenceServiceGKEAcceleratorAnnotationKey,
+	DeploymentMode,
+	EnableRoutingTagAnnotationKey,
+	AutoscalerClass,
+	AutoscalerMetrics,
+	TargetUtilizationPercentage,
+	MinScaleAnnotationKey,
+	MaxScaleAnnotationKey,
+	InferenceServiceInternalAnnotationsPrefix,
+	StorageInitializerSourceUriInternalAnnotationKey,
+	StorageSpecAnnotationKey,
+	StorageSpecParamAnnotationKey,
+	StorageSpecKeyAnnotationKey,
+	LoggerInternalAnnotationKey,
+	LoggerSinkUrlInternalAnnotationKey,
+	LoggerModeInternalAnnotationKey,
+	BatcherInternalAnnotationKey,
+	BatcherMaxBatchSizeInternalAnnotationKey,
+	BatcherMaxLatencyInternalAnnotationKey,
+	BatcherTimeoutInternalAnnotationKey,
+	AgentShouldInjectAnnotationKey,
+	AgentModelConfigVolumeNameAnnotationKey,
+	AgentModelConfigMountPathAnnotationKey,
+	AgentModelDirAnnotationKey,
+	PredictorHostAnnotationKey,
+	PredictorProtocolAnnotationKey,
+}
+
 // StorageSpec Constants
 var (
 	DefaultStorageSpecSecret     = "storage-config"
@@ -257,6 +286,12 @@ const (
 	ParentInferenceServiceLabel = "inferenceservice"
 	InferenceServiceLabel       = "serving.kserve.io/inferenceservice"
 )
+
+var InferenceServiceLabels = []string{
+	KServiceComponentLabel,
+	KServiceModelLabel,
+	KServiceEndpointLabel,
+}
 
 // InferenceService default/canary constants
 const (
