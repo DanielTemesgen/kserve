@@ -101,8 +101,7 @@ func (r *DeploymentReconciler) checkDeploymentExist(client client.Client) (const
 	// existed, check equivalence
 	// for HPA scaling, we should ignore Replicas of Deployment
 	// for metadata injection by other controllers, we should ignore annotations and labels and compare them separately
-	ignoreFields := cmpopts.IgnoreFields(appsv1.DeploymentSpec{}, "Replicas", "Template.ObjectMeta.Annotations", "Template.ObjectMeta.Labels")
-
+	ignoreFields := cmpopts.IgnoreFields(appsv1.DeploymentSpec{}, "Replicas", "Template.ObjectMeta.Annotations", "Template.ObjectMeta.Labels", "Template.Spec.DeprecatedServiceAccount", "Template.Spec.ServiceAccountName")
 	if diff, err := kmp.SafeDiff(r.Deployment.Spec, existingDeployment.Spec, ignoreFields); err != nil {
 		return constants.CheckResultUnknown, nil, err
 	} else if diff != "" {
@@ -114,13 +113,14 @@ func (r *DeploymentReconciler) checkDeploymentExist(client client.Client) (const
 	if diff, err := compareMetadata(r.Deployment.Spec.Template, existingDeployment.Spec.Template); err != nil {
 		return constants.CheckResultUnknown, nil, err
 	} else if diff != "" {
-		log.Info("Deployment Updated", "Diff", diff)
+		log.Info("Deployment Updated", "Metadata Diff", diff)
 		return constants.CheckResultUpdate, existingDeployment, nil
 	}
 	return constants.CheckResultExisted, existingDeployment, nil
 }
 
 func compareMetadata(template corev1.PodTemplateSpec, existingDeploymentSpecTemplate corev1.PodTemplateSpec) (string, error) {
+	log.Info("Comparing Metadata")
 	metadataComparer := cmp.Comparer(
 		func(x, y corev1.PodTemplateSpec) bool {
 			// filter only relevant annotations
@@ -128,6 +128,8 @@ func compareMetadata(template corev1.PodTemplateSpec, existingDeploymentSpecTemp
 			relevantAnnotationsInY := filterRelevantAnnotations(y.ObjectMeta.Annotations)
 
 			// compare only relevant annotations
+			log.Info("Comparing Metadata", "X Annotations", relevantAnnotationsInX)
+			log.Info("Comparing Metadata", "Y Annotations", relevantAnnotationsInY)
 			if diff, _ := kmp.SafeDiff(relevantAnnotationsInX, relevantAnnotationsInY); diff != "" {
 				return false
 			}
@@ -137,6 +139,8 @@ func compareMetadata(template corev1.PodTemplateSpec, existingDeploymentSpecTemp
 			relevantLabelsInY := filterRelevantLabels(y.ObjectMeta.Labels)
 
 			// compare only relevant labels
+			log.Info("Comparing Metadata", "X Labels", relevantLabelsInX)
+			log.Info("Comparing Metadata", "Y Labels", relevantLabelsInY)
 			if diff, _ := kmp.SafeDiff(relevantLabelsInX, relevantLabelsInY); diff != "" {
 				return false
 			}
@@ -147,7 +151,7 @@ func compareMetadata(template corev1.PodTemplateSpec, existingDeploymentSpecTemp
 	// if metadata contains annotations or labels that aren't relevant then use custom comparer
 	filterMetadata := cmp.FilterValues(
 		func(x, y corev1.PodTemplateSpec) bool {
-			// check if either pod template spec x or y has any non-KServe annotations
+			// check if either pod template spec x or y has any irrelevant annotations
 			if isIrrelevantAnnotationInX := irrelevantAnnotationInAnnotations(x.ObjectMeta.Annotations); isIrrelevantAnnotationInX {
 				return true
 			}
@@ -155,7 +159,7 @@ func compareMetadata(template corev1.PodTemplateSpec, existingDeploymentSpecTemp
 				return true
 			}
 
-			// check if either pod template spec x or y has any non-KServe labels
+			// check if either pod template spec x or y has any irrelevant labels
 			if isIrrelevantLabelInX := irrelevantLabelInLabels(x.ObjectMeta.Labels); isIrrelevantLabelInX {
 				return true
 			}
@@ -170,45 +174,45 @@ func compareMetadata(template corev1.PodTemplateSpec, existingDeploymentSpecTemp
 	return diff, err
 }
 
-func irrelevantAnnotationInAnnotations(metadata map[string]string) bool {
-	for k := range metadata {
-		if relevantKey := utils.StringInSlice(k, constants.InferenceServiceAnnotations) || keyIsOwnedByKubernetes(k); !relevantKey {
+func irrelevantAnnotationInAnnotations(annotations map[string]string) bool {
+	for k := range annotations {
+		if relevantAnnotation := utils.StringInSlice(k, constants.InferenceServiceAnnotations) || metadataIsOwnedByKubernetes(k); !relevantAnnotation {
 			return true
 		}
 	}
 	return false
 }
 
-func irrelevantLabelInLabels(metadata map[string]string) bool {
-	for k := range metadata {
-		if relevantKey := utils.StringInSlice(k, constants.InferenceServiceLabels) || keyIsOwnedByKubernetes(k); !relevantKey {
+func irrelevantLabelInLabels(labels map[string]string) bool {
+	for k := range labels {
+		if relevantLabel := utils.StringInSlice(k, constants.InferenceServiceLabels) || metadataIsOwnedByKubernetes(k); !relevantLabel {
 			return true
 		}
 	}
 	return false
 }
 
-func filterRelevantAnnotations(metadata map[string]string) (relevantAnnotations map[string]string) {
+func filterRelevantAnnotations(annotations map[string]string) (relevantAnnotations map[string]string) {
 	relevantAnnotations = map[string]string{}
-	for k := range metadata {
-		if relevantKey := utils.StringInSlice(k, constants.InferenceServiceAnnotations) || keyIsOwnedByKubernetes(k); relevantKey {
-			relevantAnnotations[k] = metadata[k]
+	for k := range annotations {
+		if relevantAnnotation := utils.StringInSlice(k, constants.InferenceServiceAnnotations) || metadataIsOwnedByKubernetes(k); relevantAnnotation {
+			relevantAnnotations[k] = annotations[k]
 		}
 	}
 	return
 }
 
-func filterRelevantLabels(metadata map[string]string) (relevantLabels map[string]string) {
+func filterRelevantLabels(labels map[string]string) (relevantLabels map[string]string) {
 	relevantLabels = map[string]string{}
-	for k := range metadata {
-		if relevantKey := utils.StringInSlice(k, constants.InferenceServiceLabels) || keyIsOwnedByKubernetes(k); relevantKey {
-			relevantLabels[k] = metadata[k]
+	for k := range labels {
+		if relevantLabel := utils.StringInSlice(k, constants.InferenceServiceLabels) || metadataIsOwnedByKubernetes(k); relevantLabel {
+			relevantLabels[k] = labels[k]
 		}
 	}
 	return
 }
 
-func keyIsOwnedByKubernetes(key string) bool {
+func metadataIsOwnedByKubernetes(key string) bool {
 	return strings.Contains(key, "kubernetes.io")
 }
 
