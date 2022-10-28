@@ -19,12 +19,10 @@ package deployment
 import (
 	"context"
 	"github.com/google/go-cmp/cmp"
-	"github.com/kserve/kserve/pkg/controller/v1beta1/inferenceservice/utils"
-	"strings"
-
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kserve/kserve/pkg/apis/serving/v1beta1"
 	"github.com/kserve/kserve/pkg/constants"
+	"github.com/kserve/kserve/pkg/controller/v1beta1/inferenceservice/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
@@ -176,7 +174,7 @@ func compareMetadata(template corev1.PodTemplateSpec, existingDeploymentSpecTemp
 
 func irrelevantAnnotationInAnnotations(annotations map[string]string) bool {
 	for k := range annotations {
-		if relevantAnnotation := utils.StringInSlice(k, constants.InferenceServiceAnnotations) || metadataIsOwnedByKubernetes(k); !relevantAnnotation {
+		if relevantAnnotation := utils.StringInSlice(k, constants.InferenceServiceAnnotations); !relevantAnnotation {
 			return true
 		}
 	}
@@ -185,7 +183,7 @@ func irrelevantAnnotationInAnnotations(annotations map[string]string) bool {
 
 func irrelevantLabelInLabels(labels map[string]string) bool {
 	for k := range labels {
-		if relevantLabel := utils.StringInSlice(k, constants.InferenceServiceLabels) || metadataIsOwnedByKubernetes(k); !relevantLabel {
+		if relevantLabel := utils.StringInSlice(k, constants.InferenceServiceLabels); !relevantLabel {
 			return true
 		}
 	}
@@ -195,7 +193,7 @@ func irrelevantLabelInLabels(labels map[string]string) bool {
 func filterRelevantAnnotations(annotations map[string]string) (relevantAnnotations map[string]string) {
 	relevantAnnotations = map[string]string{}
 	for k := range annotations {
-		if relevantAnnotation := utils.StringInSlice(k, constants.InferenceServiceAnnotations) || metadataIsOwnedByKubernetes(k); relevantAnnotation {
+		if relevantAnnotation := utils.StringInSlice(k, constants.InferenceServiceAnnotations); relevantAnnotation {
 			relevantAnnotations[k] = annotations[k]
 		}
 	}
@@ -205,15 +203,11 @@ func filterRelevantAnnotations(annotations map[string]string) (relevantAnnotatio
 func filterRelevantLabels(labels map[string]string) (relevantLabels map[string]string) {
 	relevantLabels = map[string]string{}
 	for k := range labels {
-		if relevantLabel := utils.StringInSlice(k, constants.InferenceServiceLabels) || metadataIsOwnedByKubernetes(k); relevantLabel {
+		if relevantLabel := utils.StringInSlice(k, constants.InferenceServiceLabels); relevantLabel {
 			relevantLabels[k] = labels[k]
 		}
 	}
 	return
-}
-
-func metadataIsOwnedByKubernetes(key string) bool {
-	return strings.Contains(key, "kubernetes.io")
 }
 
 func setDefaultPodSpec(podSpec *corev1.PodSpec) {

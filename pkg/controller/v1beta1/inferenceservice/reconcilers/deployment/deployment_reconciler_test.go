@@ -35,9 +35,6 @@ func TestCompareMetadata(t *testing.T) {
 	annotationsWithDifferentKServeValue := copyMap(annotations)
 	annotationsWithDifferentKServeValue[targetUtilizationPercentageAnnotation] = "90"
 
-	annotationsWithDifferentK8sValue := copyMap(annotations)
-	annotationsWithDifferentK8sValue[deploymentRevisionAnnotation] = "3"
-
 	annotationsWithDifferentIrrelevantValue := copyMap(annotations)
 	annotationsWithDifferentIrrelevantValue[irrelevantAnnotation] = "goodbye"
 
@@ -54,14 +51,11 @@ func TestCompareMetadata(t *testing.T) {
 	annotationsWithDifferentRelevantAndIrrelevantValues := copyMap(annotationsWithDifferentRelevantValues)
 	annotationsWithDifferentRelevantAndIrrelevantValues[irrelevantAnnotation] = "goodbye"
 
-	annotationsWithMissingKServeKey := copyMap(annotations)
-	delete(annotationsWithMissingKServeKey, storageInitializerSourceUriInternalAnnotation)
+	annotationsWithMissingKServeAnnotation := copyMap(annotations)
+	delete(annotationsWithMissingKServeAnnotation, storageInitializerSourceUriInternalAnnotation)
 
-	annotationsWithMissingK8sKey := copyMap(annotations)
-	delete(annotationsWithMissingK8sKey, deploymentRevisionAnnotation)
-
-	annotationsWithMissingIrrelevantKey := copyMap(annotations)
-	delete(annotationsWithMissingIrrelevantKey, irrelevantAnnotation)
+	annotationsWithMissingIrrelevantAnnotation := copyMap(annotations)
+	delete(annotationsWithMissingIrrelevantAnnotation, irrelevantAnnotation)
 
 	annotationsWithAdditionalKServeAnnotation := copyMap(annotations)
 	annotationsWithAdditionalKServeAnnotation["serving.kserve.io/enable-tag-routing"] = "true"
@@ -71,58 +65,40 @@ func TestCompareMetadata(t *testing.T) {
 
 	kServiceComponentLabel := "component"
 	kServiceModelLabel := "model"
-	k8sInstanceLabel := "app.kubernetes.io/instance"
-	k8sManagedByLabel := "app.kubernetes.io/managed-by"
-	k8sNameLabel := "app.kubernetes.io/name"
 	irrelevantLabel := "label.custom.io/my-label"
 
 	labels := map[string]string{
-		k8sInstanceLabel:       "my-instance",
-		k8sManagedByLabel:      "Helm",
-		k8sNameLabel:           "my-app",
 		kServiceComponentLabel: "predictor",
 		kServiceModelLabel:     "sklearn",
 		irrelevantLabel:        "hello",
 	}
 
-	k8sKServeAndIrrelevantLabelsWithDifferentKServeValue := copyMap(labels)
-	k8sKServeAndIrrelevantLabelsWithDifferentKServeValue[kServiceComponentLabel] = "transformer"
+	KServeAndIrrelevantLabelsWithDifferentKServeValue := copyMap(labels)
+	KServeAndIrrelevantLabelsWithDifferentKServeValue[kServiceComponentLabel] = "transformer"
 
-	k8sKServeAndIrrelevantLabelsWithDifferentK8sValue := copyMap(labels)
-	k8sKServeAndIrrelevantLabelsWithDifferentK8sValue[k8sInstanceLabel] = "my-different-instance"
+	KServeAndIrrelevantLabelsWithDifferentIrrelevantValue := copyMap(labels)
+	KServeAndIrrelevantLabelsWithDifferentIrrelevantValue[irrelevantLabel] = "goodbye"
 
-	k8sKServeAndIrrelevantLabelsWithDifferentIrrelevantValue := copyMap(labels)
-	k8sKServeAndIrrelevantLabelsWithDifferentIrrelevantValue[irrelevantLabel] = "goodbye"
-
-	k8sKServeAndIrrelevantLabelsWithDifferentRelevantValues := map[string]string{
-		k8sInstanceLabel:       "my-other-instance",
-		k8sManagedByLabel:      "Kustomize",
-		k8sNameLabel:           "my-other-app",
+	KServeAndIrrelevantLabelsWithDifferentRelevantValues := map[string]string{
 		kServiceComponentLabel: "transformer",
 		kServiceModelLabel:     "xgboost",
 		irrelevantLabel:        "hello",
 	}
 
-	k8sKServeAndIrrelevantLabelsWithDifferentRelevantAndIrrelevantValues := copyMap(k8sKServeAndIrrelevantLabelsWithDifferentRelevantValues)
-	k8sKServeAndIrrelevantLabelsWithDifferentRelevantAndIrrelevantValues[irrelevantLabel] = "goodbye"
+	KServeAndIrrelevantLabelsWithDifferentRelevantAndIrrelevantValues := copyMap(KServeAndIrrelevantLabelsWithDifferentRelevantValues)
+	KServeAndIrrelevantLabelsWithDifferentRelevantAndIrrelevantValues[irrelevantLabel] = "goodbye"
 
-	labelsWithMissingKServeKey := copyMap(labels)
-	delete(labelsWithMissingKServeKey, kServiceComponentLabel)
+	labelsWithMissingKServeLabel := copyMap(labels)
+	delete(labelsWithMissingKServeLabel, kServiceComponentLabel)
 
-	labelsWithMissingK8sKey := copyMap(labels)
-	delete(labelsWithMissingK8sKey, k8sInstanceLabel)
+	labelsWithMissingIrrelevantLabel := copyMap(labels)
+	delete(labelsWithMissingIrrelevantLabel, irrelevantLabel)
 
-	labelsWithMissingIrrelevantKey := copyMap(labels)
-	delete(labelsWithMissingIrrelevantKey, irrelevantLabel)
+	labelsWithAdditionalKServeLabel := copyMap(labels)
+	labelsWithAdditionalKServeLabel["endpoint"] = "default"
 
-	labelsWithAdditionalKServeKey := copyMap(labels)
-	labelsWithAdditionalKServeKey["endpoint"] = "default"
-
-	labelsWithAdditionalK8sKey := copyMap(labels)
-	labelsWithAdditionalK8sKey["app.kubernetes.io/version"] = "5"
-
-	labelsWithAdditionalIrrelevantKey := copyMap(labels)
-	labelsWithAdditionalIrrelevantKey["label.custom.io/my-other-label"] = "hello-again"
+	labelsWithAdditionalIrrelevantLabel := copyMap(labels)
+	labelsWithAdditionalIrrelevantLabel["label.custom.io/my-other-label"] = "hello-again"
 
 	cases := []struct {
 		name         string
@@ -144,14 +120,6 @@ func TestCompareMetadata(t *testing.T) {
 			name:         "deployment spec template with a different KServe annotation should return diff",
 			xAnnotations: annotations,
 			yAnnotations: annotationsWithDifferentKServeValue,
-			xLabels:      labels,
-			yLabels:      labels,
-			expectedDiff: true,
-		},
-		{
-			name:         "deployment spec template with a different kubernetes annotation should return diff",
-			xAnnotations: annotations,
-			yAnnotations: annotationsWithDifferentK8sValue,
 			xLabels:      labels,
 			yLabels:      labels,
 			expectedDiff: true,
@@ -183,15 +151,7 @@ func TestCompareMetadata(t *testing.T) {
 		{
 			name:         "deployment spec template with a missing KServe annotation should return diff",
 			xAnnotations: annotations,
-			yAnnotations: annotationsWithMissingKServeKey,
-			xLabels:      labels,
-			yLabels:      labels,
-			expectedDiff: true,
-		},
-		{
-			name:         "deployment spec template with a missing K8s annotation should return diff",
-			xAnnotations: annotations,
-			yAnnotations: annotationsWithMissingK8sKey,
+			yAnnotations: annotationsWithMissingKServeAnnotation,
 			xLabels:      labels,
 			yLabels:      labels,
 			expectedDiff: true,
@@ -199,7 +159,7 @@ func TestCompareMetadata(t *testing.T) {
 		{
 			name:         "deployment spec template with a missing irrelevant annotation should return no diff",
 			xAnnotations: annotations,
-			yAnnotations: annotationsWithMissingIrrelevantKey,
+			yAnnotations: annotationsWithMissingIrrelevantAnnotation,
 			xLabels:      labels,
 			yLabels:      labels,
 			expectedDiff: false,
@@ -213,7 +173,7 @@ func TestCompareMetadata(t *testing.T) {
 			expectedDiff: true,
 		},
 		{
-			name:         "deployment spec template with an additional K8s annotation should return diff",
+			name:         "deployment spec template with an additional KServe annotation should return diff",
 			xAnnotations: annotations,
 			yAnnotations: annotationsWithAdditionalKServeAnnotation,
 			xLabels:      labels,
@@ -233,15 +193,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotations,
 			xLabels:      labels,
-			yLabels:      k8sKServeAndIrrelevantLabelsWithDifferentKServeValue,
-			expectedDiff: true,
-		},
-		{
-			name:         "deployment spec template with a different kubernetes label should return diff",
-			xAnnotations: annotations,
-			yAnnotations: annotations,
-			xLabels:      labels,
-			yLabels:      k8sKServeAndIrrelevantLabelsWithDifferentK8sValue,
+			yLabels:      KServeAndIrrelevantLabelsWithDifferentKServeValue,
 			expectedDiff: true,
 		},
 		{
@@ -249,7 +201,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotations,
 			xLabels:      labels,
-			yLabels:      k8sKServeAndIrrelevantLabelsWithDifferentIrrelevantValue,
+			yLabels:      KServeAndIrrelevantLabelsWithDifferentIrrelevantValue,
 			expectedDiff: false,
 		},
 		{
@@ -257,7 +209,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotations,
 			xLabels:      labels,
-			yLabels:      k8sKServeAndIrrelevantLabelsWithDifferentRelevantValues,
+			yLabels:      KServeAndIrrelevantLabelsWithDifferentRelevantValues,
 			expectedDiff: true,
 		},
 		{
@@ -265,7 +217,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotations,
 			xLabels:      labels,
-			yLabels:      k8sKServeAndIrrelevantLabelsWithDifferentRelevantAndIrrelevantValues,
+			yLabels:      KServeAndIrrelevantLabelsWithDifferentRelevantAndIrrelevantValues,
 			expectedDiff: true,
 		},
 		{
@@ -273,15 +225,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotations,
 			xLabels:      labels,
-			yLabels:      labelsWithMissingKServeKey,
-			expectedDiff: true,
-		},
-		{
-			name:         "deployment spec template with a missing K8s label should return diff",
-			xAnnotations: annotations,
-			yAnnotations: annotations,
-			xLabels:      labels,
-			yLabels:      labelsWithMissingK8sKey,
+			yLabels:      labelsWithMissingKServeLabel,
 			expectedDiff: true,
 		},
 		{
@@ -289,7 +233,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotations,
 			xLabels:      labels,
-			yLabels:      labelsWithMissingIrrelevantKey,
+			yLabels:      labelsWithMissingIrrelevantLabel,
 			expectedDiff: false,
 		},
 		{
@@ -297,15 +241,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotations,
 			xLabels:      labels,
-			yLabels:      labelsWithAdditionalKServeKey,
-			expectedDiff: true,
-		},
-		{
-			name:         "deployment spec template with an additional K8s label should return diff",
-			xAnnotations: annotations,
-			yAnnotations: annotations,
-			xLabels:      labels,
-			yLabels:      labelsWithAdditionalK8sKey,
+			yLabels:      labelsWithAdditionalKServeLabel,
 			expectedDiff: true,
 		},
 		{
@@ -313,7 +249,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotations,
 			xLabels:      labels,
-			yLabels:      labelsWithAdditionalIrrelevantKey,
+			yLabels:      labelsWithAdditionalIrrelevantLabel,
 			expectedDiff: false,
 		},
 		{
@@ -321,7 +257,7 @@ func TestCompareMetadata(t *testing.T) {
 			xAnnotations: annotations,
 			yAnnotations: annotationsWithDifferentKServeValue,
 			xLabels:      labels,
-			yLabels:      k8sKServeAndIrrelevantLabelsWithDifferentKServeValue,
+			yLabels:      KServeAndIrrelevantLabelsWithDifferentKServeValue,
 			expectedDiff: true,
 		},
 	}
